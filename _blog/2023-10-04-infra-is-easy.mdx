@@ -1,0 +1,178 @@
+---
+title: 'Infrastructure is Easy? Think Again.'
+description: "Infrastructure is easy, right? Just spin up a server and you're done. Well, not quite! In this article, we'll explore the hidden costs of infrastructure and how Shuttle can help you save time and money."
+author: matthias
+tags: [Shuttle, comparison, startup, backend]
+thumb: rust-go-thumb.png
+cover: rust-go-thumb.png
+date: '2023-10-04T17:00:00'
+---
+
+It's true, we've come a long way since the days of bare metal servers.
+
+Nowadays you can spin up a server in seconds or deploy a container to a cluster
+with a single command. Cloud providers make our lives incredibly easy.
+
+Look! Just a few tools to master and you can deploy your application to the
+cloud:
+
+* Google Cloud / AWS
+* Kubernetes
+* Helm
+* Docker
+* Terraform
+* Github Actions
+
+And if you're really fancy, you can even use a managed Kubernetes service like
+EKS or GKE. Just a few clicks and you're ready to go!
+
+Then you only need to take care of monitoring, logging, alerting, security
+upgrades, migrations, scaling, failover, backups,...
+
+And you're done!
+
+Before you know it, you're running a full-blown DevOps team and you're spending
+more time on infrastructure than on your product. Your team is growing and
+you're hiring more and more people to manage that infrastructure. All while your
+competitors are shipping features and growing their user base.
+
+## The Problem
+
+The promise of the cloud was to make infrastructure easy.
+
+It might be easier to spin up a server, but harder to navigate the sea of tools
+and services. Even if you don't need all of them, you still need to know
+about their existence and learn the basics to make informed decisions.
+
+What's worse is that infrastructure diverts attention from the product you
+envisioned, draining momentum in the process.
+
+As engineers, we *love* dealing with infrastructure (well, some of us do).
+We're happy to spend hours tweaking our Kubernetes cluster or setting up that new
+monitoring tool.
+
+Every company wastes a ludicrous amount of time and money on
+infrastructure, all while reinventing the wheel and making the same mistakes
+along the way.
+
+What if we could do away with infrastructure altogether?
+
+## The Advent Of Serverless
+
+Ah, serverless, you holy grail of efficiency. No more servers, no more
+containers, no more Kubernetes. Just a few lines of business logic and you're done.
+
+Unless...
+
+* The cold start time is too high and you drop requests
+* Your lambda is too big and can't be deployed
+* You run out of memory at runtime
+* You need to run a long-running process
+* Debug logs are hard to access
+* It doesn't run on your local machine
+
+Serverless isn't without merit. Far from it.
+It is great for some category of problems.
+However, even if you manage to overcome these issues, chances are you'll still
+need to run a few servers with a load balancer or a database *somewhere*.
+
+But at least serverless is cheap, right?
+
+Well, it depends. If you're running a small application, it's probably cheaper
+than running an entire cluster, but with scale, the [cost can quickly
+add up](https://einaregilsson.com/serverless-15-percent-slower-and-eight-times-more-expensive/). 
+
+## Platform-As-A-Service (Paas)
+
+Providers like Heroku and Netlify paved the way for a third option: a
+managed service that takes care of all the infrastructure for you. No
+need to worry about infrastructure. You just push your code and it gets deployed.
+
+What makes these solutions so great is their **deep integration
+with a specific programming language ecosystem**. For example, Heroku embraced Ruby,
+and many Ruby developers loved the first-class experience.
+
+At Shuttle, we're building a platform for Rust developers. We want to 
+bring the same amazing developer experience that Rustaceans know from other tooling like
+cargo, rustup, or the Rust compiler to the world of infrastructure.
+
+## Infrastructure from Code
+
+Deploying your Rust application should be a natural extension of your development
+process; that's why we build Shuttle. 
+
+No more switching between tools, no more late-night debugging
+sessions trying to figure out why your Helm chart isn't working, and definitely
+no more pulling your hair out over infrastructure complexities.
+Just use the tools you already know: Rust and Cargo.
+
+```rust
+// Single line to create a new service. That's it
+#[shuttle_runtime::main]
+async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::ShuttleAxum {
+	// We can access the database connection pool here
+	// and initialize our database
+	pool.execute(include_str!("../schema.sql"))
+    	.await
+    	.context("Failed to initialize DB")?;
+
+	let router = Router::new()
+    	.route("/", get(index))
+    	.route("/weather", get(weather))
+    	.route("/stats", get(stats))
+		// Serve static files from the `assets` directory.
+        .nest_service("/assets", ServeDir::new(PathBuf::from("assets")));
+    	.with_state(pool);
+
+	Ok(router.into())
+}
+```
+
+We have deep integrations with all the major Rust web frameworks, including
+[Actix](https://docs.shuttle.rs/examples/actix), [Axum](https://docs.shuttle.rs/examples/axum),
+and [Rocket](https://docs.shuttle.rs/examples/rocket)
+as well as [databases](https://docs.shuttle.rs/resources/shuttle-shared-db) and
+[key-value stores](https://docs.shuttle.rs/resources/shuttle-persist).
+
+(For a more in-depth example, check out our [hands-on comparison between Rust and
+Go](/blog/2023/09/27/rust-vs-go-comparison), which goes into much more detail.)
+
+## Explicit vs Implicit
+
+You might be wondering about the trade-offs of using a platform like Shuttle
+where you add annotations (macros, really) to your code to define your
+infrastructure. It's a fair question.
+
+Here's the thing: with Shuttle you still have full control over your
+infrastructure. [The code is fully open
+source](https://github.com/shuttle-hq/shuttle), and you can spin up your own
+self-hosted Shuttle instance and deploy your application there. Code can still
+[run locally](https://docs.shuttle.rs/getting-started/local-run), and it's
+pretty straightforward to get rid of the annotations if you want to.
+In the above example, just remove `#[shuttle_runtime::main]` as well as 
+`#[shuttle_shared_db::Postgres]` and set up your database connection
+manually.
+
+Thanks to Rust's strong typing and ownership model, many potential issues can be
+caught at compile time. Shuttle leverages this, turning potential runtime
+issues into compile-time diagnostics. It's like having a safety net, ensuring
+that your deployments are as smooth as your development process.
+
+## The Real Cost of DIY Infrastructure
+
+As we've seen it's easy to underestimate the cost of maintaining infrastructure.
+Updates, dockerization, deployment complexities, availability, regions... it can get overwhelming.
+
+Infrastructure might seem easy on the surface, but the devil is in the details.
+
+Every hour dedicated to these tasks not only carries a direct cost to your
+business but also bears an opportunity cost.
+
+With Shuttle, you can save costs and focus on what matters most: your product.
+
+## Conclusion
+
+Navigating infrastructure can be tough. Serverless has its merits, but it's not
+always the answer. For Rust developers, Shuttle offers a straightforward
+solution. It's open-source, free, and there's a feature-rich hosted version.
+Curious about the specifics? Check out the [/pricing] page. 
